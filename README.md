@@ -11,6 +11,7 @@ TrendRadar 现已全面升级，为您带来更强大、更智能、更易用的
 
 2.  **智能内容处理**
     *   **AI 驱动分析**：自动提取每条信息的关键词、分类、标签，并评估其**重要性**和**影响力**。
+    *   **大模型配置**：支持在插件设置中直接配置 OpenAI、DeepSeek、Gemini 等大模型服务，自定义模型参数。
     *   **智能内容过滤**：通过关键词和分类黑名单，自动屏蔽您不感兴趣的内容（如娱乐、八卦新闻）。
     *   **AI 预过滤**：开启后，AI 会在分析前进行一轮智能判断，进一步过滤无关信息，提升内容质量。
 
@@ -20,6 +21,7 @@ TrendRadar 现已全面升级，为您带来更强大、更智能、更易用的
         *   **详细视图**：点击卡片即可在弹窗中查看完整的 AI 分析、核心要点以及所有信息来源链接。
     *   **状态管理**：卡片会清晰地显示“未读”、“已读”、“新”等状态，帮助您高效处理信息。
     *   **快捷操作**：在卡片上即可完成**标记已读**、**归档**和**删除**等操作。
+    *   **任务控制**：支持在插件设置中一键触发后台抓取任务，无需等待定时周期。
 
 4.  **无缝 Obsidian 集成**
     *   **一键导出**：在详细视图中，一键将 AI 分析结果和原文链接保存为格式精美的 Markdown 笔记。
@@ -39,7 +41,7 @@ cd /path/to/TrendRadar
 # 2. 安装依赖
 # 如果遇到权限问题，请使用 sudo pip3 install ...
 pip3 install -r requirements.txt
-sudo pip3 install apscheduler croniter
+sudo pip3 install apscheduler croniter feedparser
 
 # 3. 启动 API 服务
 python3 -m uvicorn api.main:app --host 0.0.0.0 --port 3334
@@ -52,9 +54,10 @@ python3 -m uvicorn api.main:app --host 0.0.0.0 --port 3334
 1.  将 `obsidian-plugin` 文件夹下的 `main.js`, `manifest.json`, `styles.css` 三个文件复制到您的 Obsidian 仓库的 `.obsidian/plugins/trendradar` 目录下（如果目录不存在，请创建它）。
 2.  在 Obsidian 的“第三方插件”设置中，刷新并启用 “TrendRadar AI Assistant” 插件。
 3.  进入 TrendRadar 插件的设置页面，这里您可以：
+    *   **配置大模型**：选择 AI 提供商（如 DeepSeek），输入 API Key 和模型名称。
     *   **配置数据源**：点击“+ 添加”按钮，选择类型（RSS, Web, Twitter），并填写相关信息。
+    *   **任务控制**：点击“🚀 开始抓取”按钮，立即启动一次数据抓取和分析。
     *   **配置过滤器**：设置您不感兴趣的关键词和分类，让信息流更清爽。
-    *   **调整基本设置**：如 API 地址、自动刷新间隔等。
 
 ### 3. 开始使用
 

@@ -1,5 +1,5 @@
 import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf, TextComponent, DropdownComponent, ToggleComponent, ButtonComponent } from 'obsidian';
-import { getThemes, getSources, createSource, updateSource, deleteSource, getFilterConfig, updateFilterConfig } from './api';
+import { getThemes, getSources, createSource, updateSource, deleteSource, getFilterConfig, updateFilterConfig, getAIConfig, updateAIConfig, triggerFetch } from './api';
 import { TrendRadarView, TRENDRADAR_VIEW_TYPE } from './view';
 
 // --- Interfaces ---
@@ -33,6 +33,14 @@ interface FilterConfig {
 	min_content_length: number;
 	min_importance: number;
 	enable_ai_prefilter: boolean;
+}
+
+interface AIConfig {
+	provider: string;
+	api_key: string;
+	base_url: string;
+	model_name: string;
+	temperature: number;
 }
 
 const DEFAULT_SETTINGS: TrendRadarSettings = {
@@ -154,6 +162,7 @@ class TrendRadarSettingTab extends PluginSettingTab {
 	plugin: TrendRadarPlugin;
 	private sourcesContainer: HTMLElement;
 	private filterContainer: HTMLElement;
+	private aiContainer: HTMLElement;
 
 	constructor(app: App, plugin: TrendRadarPlugin) {
 		super(app, plugin);
@@ -213,6 +222,39 @@ class TrendRadarSettingTab extends PluginSettingTab {
 					}
 				}));
 
+		// ========== 任务控制 ==========
+		containerEl.createEl('h2', { text: '任务控制' });
+		
+		new Setting(containerEl)
+			.setName('立即抓取')
+			.setDesc('手动触发一次完整的数据抓取和分析任务（后台运行）')
+			.addButton(button => button
+				.setButtonText('🚀 开始抓取')
+				.setCta()
+				.onClick(async () => {
+					new Notice('正在触发抓取任务...');
+					try {
+						const success = await triggerFetch(this.plugin.settings.apiUrl);
+						if (success) {
+							new Notice('抓取任务已在后台启动，请稍后刷新查看结果');
+						} else {
+							new Notice('触发失败，请检查后端连接');
+						}
+					} catch (error) {
+						new Notice('触发失败: ' + error);
+					}
+				}));
+
+		// ========== AI 配置 ==========
+		containerEl.createEl('h2', { text: '大模型配置' });
+		containerEl.createEl('p', { 
+			text: '配置用于内容分析和总结的大语言模型。',
+			cls: 'setting-item-description'
+		});
+
+		this.aiContainer = containerEl.createDiv({ cls: 'trendradar-ai-settings' });
+		this.refreshAISettings();
+
 		// ========== 数据源管理 ==========
 		containerEl.createEl('h2', { text: '数据源管理' });
 		containerEl.createEl('p', { 
@@ -245,6 +287,83 @@ class TrendRadarSettingTab extends PluginSettingTab {
 
 		this.filterContainer = containerEl.createDiv({ cls: 'trendradar-filter-settings' });
 		this.refreshFilterSettings();
+	}
+
+	async refreshAISettings() {
+		this.aiContainer.empty();
+
+		try {
+			const config = await getAIConfig(this.plugin.settings.apiUrl);
+			
+			// 提供商
+			new Setting(this.aiContainer)
+				.setName('AI 提供商')
+				.setDesc('选择 AI 服务提供商')
+				.addDropdown(dropdown => dropdown
+					.addOption('openai', 'OpenAI')
+					.addOption('deepseek', 'DeepSeek')
+					.addOption('gemini', 'Google Gemini')
+					.setValue(config.provider)
+					.onChange(async (value) => {
+						config.provider = value;
+						await updateAIConfig(this.plugin.settings.apiUrl, config);
+					}));
+
+			// API Key
+			new Setting(this.aiContainer)
+				.setName('API Key')
+				.setDesc('输入您的 API Key')
+				.addText(text => text
+					.setPlaceholder('sk-...')
+					.setValue(config.api_key)
+					.onChange(async (value) => {
+						config.api_key = value;
+						await updateAIConfig(this.plugin.settings.apiUrl, config);
+					}));
+
+			// Base URL
+			new Setting(this.aiContainer)
+				.setName('Base URL')
+				.setDesc('API 基础地址（可选，用于中转或自定义端点）')
+				.addText(text => text
+					.setPlaceholder('https://api.openai.com/v1')
+					.setValue(config.base_url)
+					.onChange(async (value) => {
+						config.base_url = value;
+						await updateAIConfig(this.plugin.settings.apiUrl, config);
+					}));
+
+			// 模型名称
+			new Setting(this.aiContainer)
+				.setName('模型名称')
+				.setDesc('指定使用的模型（如 gpt-4o, deepseek-chat）')
+				.addText(text => text
+					.setPlaceholder('gpt-3.5-turbo')
+					.setValue(config.model_name)
+					.onChange(async (value) => {
+						config.model_name = value;
+						await updateAIConfig(this.plugin.settings.apiUrl, config);
+					}));
+
+			// 温度
+			new Setting(this.aiContainer)
+				.setName('温度 (Temperature)')
+				.setDesc('控制生成内容的随机性 (0.0 - 1.0)')
+				.addSlider(slider => slider
+					.setLimits(0, 1, 0.1)
+					.setValue(config.temperature)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						config.temperature = value;
+						await updateAIConfig(this.plugin.settings.apiUrl, config);
+					}));
+
+		} catch (error) {
+			this.aiContainer.createEl('p', { 
+				text: '无法加载 AI 配置，请检查后端服务是否运行。',
+				cls: 'trendradar-error-hint'
+			});
+		}
 	}
 
 	async refreshSourcesList() {
@@ -536,16 +655,16 @@ class SourceEditModal extends Modal {
 		new Setting(contentEl)
 			.addButton(button => {
 				button.setButtonText('保存')
-					.setCta()
-					.onClick(async () => {
-						await this.saveSource();
-					});
+				.setCta()
+				.onClick(async () => {
+					await this.saveSource();
+				});
 			})
 			.addButton(button => {
 				button.setButtonText('取消')
-					.onClick(() => {
-						this.close();
-					});
+				.onClick(() => {
+					this.close();
+				});
 			});
 	}
 

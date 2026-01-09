@@ -71,6 +71,14 @@ export interface FilterConfig {
     enable_ai_prefilter: boolean;
 }
 
+export interface AIConfig {
+    provider: string;
+    api_key: string;
+    base_url: string;
+    model_name: string;
+    temperature: number;
+}
+
 
 // --- Helper Functions ---
 
@@ -281,5 +289,59 @@ export async function removeFilterKeyword(apiUrl: string, keyword: string): Prom
     if (!apiUrl) return false;
 
     const result = await apiRequest<{ success: boolean }>(`${apiUrl}/api/filter/keywords/${encodeURIComponent(keyword)}`, 'DELETE');
+    return result?.success ?? false;
+}
+
+
+// ========================================
+// AI Config API
+// ========================================
+
+/**
+ * 获取 AI 配置
+ */
+export async function getAIConfig(apiUrl: string): Promise<AIConfig> {
+    if (!apiUrl) {
+        return {
+            provider: 'openai',
+            api_key: '',
+            base_url: '',
+            model_name: 'gpt-3.5-turbo',
+            temperature: 0.7
+        };
+    }
+
+    const result = await apiRequest<AIConfig>(`${apiUrl}/api/ai/config`);
+    return result ?? {
+        provider: 'openai',
+        api_key: '',
+        base_url: '',
+        model_name: 'gpt-3.5-turbo',
+        temperature: 0.7
+    };
+}
+
+/**
+ * 更新 AI 配置
+ */
+export async function updateAIConfig(apiUrl: string, config: AIConfig): Promise<boolean> {
+    if (!apiUrl) return false;
+
+    const result = await apiRequest<{ success: boolean }>(`${apiUrl}/api/ai/config`, 'PUT', config);
+    return result?.success ?? false;
+}
+
+
+// ========================================
+// Tasks API
+// ========================================
+
+/**
+ * 触发立即抓取任务
+ */
+export async function triggerFetch(apiUrl: string): Promise<boolean> {
+    if (!apiUrl) return false;
+
+    const result = await apiRequest<{ success: boolean }>(`${apiUrl}/api/tasks/fetch`, 'POST');
     return result?.success ?? false;
 }

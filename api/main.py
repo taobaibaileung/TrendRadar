@@ -8,14 +8,17 @@ TrendRadar REST API Server
 - 数据源管理 API (CRUD)
 - 主题状态管理 API (已读/归档/删除)
 - 内容过滤配置 API
+- AI 配置管理 API
+- 立即抓取 API
 """
 
 import os
 import json
+import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -26,6 +29,7 @@ from trendradar.core.loader import load_config
 from trendradar.sources.manager import SourceManager
 from trendradar.sources.base import SourceConfig, SourceType
 from trendradar.core.content_filter import ContentFilter, FilterConfig
+from trendradar.trendradar import TrendRadar
 
 # --- Pydantic 模型定义 ---
 
@@ -63,12 +67,21 @@ class FilterConfigModel(BaseModel):
     enable_ai_prefilter: bool = Field(True, description="是否启用 AI 预过滤")
 
 
+class AIConfigModel(BaseModel):
+    """AI 配置模型"""
+    provider: str = Field("openai", description="AI 提供商: openai, deepseek, gemini")
+    api_key: str = Field(..., description="API Key")
+    base_url: str = Field("", description="API Base URL (可选)")
+    model_name: str = Field("", description="模型名称 (可选)")
+    temperature: float = Field(0.7, description="温度参数")
+
+
 # --- FastAPI 应用初始化 ---
 
 app = FastAPI(
     title="TrendRadar API",
     description="为 TrendRadar 数据提供 RESTful API 接口",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # --- CORS 中间件 ---
@@ -85,6 +98,7 @@ app.add_middleware(
 _storage_backend: Optional[LocalStorageBackend] = None
 _source_manager: Optional[SourceManager] = None
 _content_filter: Optional[ContentFilter] = None
+_trendradar_instance: Optional[TrendRadar] = None
 
 
 def get_storage() -> LocalStorageBackend:
@@ -120,6 +134,14 @@ def get_content_filter() -> ContentFilter:
     return _content_filter
 
 
+def get_trendradar() -> TrendRadar:
+    """获取 TrendRadar 主程序实例"""
+    global _trendradar_instance
+    if _trendradar_instance is None:
+        _trendradar_instance = TrendRadar()
+    return _trendradar_instance
+
+
 # ========================================
 # 状态检查 API
 # ========================================
@@ -127,7 +149,7 @@ def get_content_filter() -> ContentFilter:
 @app.get("/", tags=["Status"])
 def read_root():
     """根端点，返回服务器状态"""
-    return {"status": "ok", "message": "TrendRadar API is running.", "version": "2.0.0"}
+    return {"status": "ok", "message": "TrendRadar API is running.", "version": "2.1.0"}
 
 
 @app.get("/api/health", tags=["Status"])
@@ -309,172 +331,73 @@ def update_theme_status(theme_id: int, update: ThemeStatusUpdate, date: Optional
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.delete("/api/themes/{theme_id}", tags=["Themes"])
-def delete_theme(theme_id: int, date: Optional[str] = None):
-    """
-    删除主题
-    
-    - **theme_id**: 要删除的主题ID
-    - **date**: 主题所在的日期
-    """
-    storage = get_storage()
-    target_date = format_date_folder(date, storage.timezone)
-
-    try:
-        conn = storage._get_connection(target_date, db_type="rss")
-        cursor = conn.cursor()
-        
-        # 检查主题是否存在
-        cursor.execute("SELECT id FROM analysis_themes WHERE id = ?", (theme_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Theme not found")
-        
-        # 解除关联的文章
-        cursor.execute("UPDATE rss_items SET theme_id = NULL WHERE theme_id = ?", (theme_id,))
-        
-        # 删除主题
-        cursor.execute("DELETE FROM analysis_themes WHERE id = ?", (theme_id,))
-        
-        conn.commit()
-        
-        return {"success": True, "theme_id": theme_id, "message": "Theme deleted"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error deleting theme: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 # ========================================
 # 数据源管理 API (Sources)
 # ========================================
 
-@app.get("/api/sources", tags=["Sources"], response_model=List[Dict[str, Any]])
-def list_sources():
-    """获取所有数据源配置列表"""
+@app.get("/api/sources", tags=["Sources"], response_model=List[SourceConfigModel])
+def get_sources():
+    """获取所有数据源配置"""
     manager = get_source_manager()
-    sources = manager.list_sources()
-    return [s.to_dict() for s in sources]
+    return [config.to_dict() for config in manager.get_all_sources()]
 
 
-@app.get("/api/sources/{source_id}", tags=["Sources"], response_model=Dict[str, Any])
-def get_source(source_id: str):
-    """获取指定数据源配置"""
-    manager = get_source_manager()
-    source = manager.get_source(source_id)
-    if not source:
-        raise HTTPException(status_code=404, detail="Source not found")
-    return source.to_dict()
-
-
-@app.post("/api/sources", tags=["Sources"])
+@app.post("/api/sources", tags=["Sources"], response_model=SourceConfigModel)
 def create_source(source: SourceConfigModel):
     """创建新数据源"""
     manager = get_source_manager()
     
     # 检查 ID 是否已存在
     if manager.get_source(source.id):
-        raise HTTPException(status_code=400, detail="Source ID already exists")
+        raise HTTPException(status_code=400, detail=f"Source ID '{source.id}' already exists")
     
-    # 验证类型
-    try:
-        source_type = SourceType(source.type)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid source type: {source.type}")
-    
-    # 创建配置
-    config = SourceConfig(
-        id=source.id,
-        name=source.name,
-        type=source_type,
-        enabled=source.enabled,
-        url=source.url,
-        username=source.username,
-        selector=source.selector,
-        schedule=source.schedule,
-        retention_days=source.retention_days,
-        max_items=source.max_items,
-        use_proxy=source.use_proxy,
-        extra=source.extra,
-    )
-    
-    if manager.add_source(config):
-        return {"success": True, "source_id": source.id, "message": "Source created"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to create source")
+    config = SourceConfig.from_dict(source.dict())
+    manager.add_source(config)
+    return config.to_dict()
 
 
-@app.put("/api/sources/{source_id}", tags=["Sources"])
+@app.get("/api/sources/{source_id}", tags=["Sources"], response_model=SourceConfigModel)
+def get_source(source_id: str):
+    """获取指定数据源配置"""
+    manager = get_source_manager()
+    config = manager.get_source(source_id)
+    if not config:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return config.to_dict()
+
+
+@app.put("/api/sources/{source_id}", tags=["Sources"], response_model=SourceConfigModel)
 def update_source(source_id: str, source: SourceConfigModel):
     """更新数据源配置"""
     manager = get_source_manager()
     
-    # 检查是否存在
+    if source_id != source.id:
+        raise HTTPException(status_code=400, detail="Source ID mismatch")
+    
     if not manager.get_source(source_id):
         raise HTTPException(status_code=404, detail="Source not found")
     
-    # 验证类型
-    try:
-        source_type = SourceType(source.type)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid source type: {source.type}")
-    
-    # 创建新配置
-    config = SourceConfig(
-        id=source.id,
-        name=source.name,
-        type=source_type,
-        enabled=source.enabled,
-        url=source.url,
-        username=source.username,
-        selector=source.selector,
-        schedule=source.schedule,
-        retention_days=source.retention_days,
-        max_items=source.max_items,
-        use_proxy=source.use_proxy,
-        extra=source.extra,
-    )
-    
-    if manager.update_source(source_id, config):
-        return {"success": True, "source_id": source.id, "message": "Source updated"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to update source")
+    config = SourceConfig.from_dict(source.dict())
+    manager.update_source(config)
+    return config.to_dict()
 
 
 @app.delete("/api/sources/{source_id}", tags=["Sources"])
 def delete_source(source_id: str):
     """删除数据源"""
     manager = get_source_manager()
-    
     if not manager.get_source(source_id):
         raise HTTPException(status_code=404, detail="Source not found")
     
-    if manager.delete_source(source_id):
-        return {"success": True, "source_id": source_id, "message": "Source deleted"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to delete source")
-
-
-@app.put("/api/sources/{source_id}/toggle", tags=["Sources"])
-def toggle_source(source_id: str, enabled: bool = Body(..., embed=True)):
-    """启用/禁用数据源"""
-    manager = get_source_manager()
-    
-    if not manager.get_source(source_id):
-        raise HTTPException(status_code=404, detail="Source not found")
-    
-    if manager.toggle_source(source_id, enabled):
-        return {"success": True, "source_id": source_id, "enabled": enabled}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to toggle source")
+    manager.remove_source(source_id)
+    return {"success": True, "message": f"Source '{source_id}' deleted"}
 
 
 # ========================================
-# 内容过滤配置 API (Filter)
+# 过滤器配置 API (Filter)
 # ========================================
 
-@app.get("/api/filter", tags=["Filter"], response_model=Dict[str, Any])
+@app.get("/api/filter", tags=["Filter"], response_model=FilterConfigModel)
 def get_filter_config():
     """获取当前过滤器配置"""
     filter_instance = get_content_filter()
@@ -485,17 +408,8 @@ def get_filter_config():
 def update_filter_config(config: FilterConfigModel):
     """更新过滤器配置"""
     filter_instance = get_content_filter()
-    
-    new_config = FilterConfig(
-        keyword_blacklist=config.keyword_blacklist,
-        category_blacklist=config.category_blacklist,
-        source_blacklist=config.source_blacklist,
-        min_content_length=config.min_content_length,
-        min_importance=config.min_importance,
-        enable_ai_prefilter=config.enable_ai_prefilter,
-    )
-    
-    filter_instance.update_config(new_config)
+    new_config = FilterConfig.from_dict(config.dict())
+    filter_instance.config = new_config
     
     # 保存到文件
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -525,6 +439,78 @@ def remove_filter_keyword(keyword: str):
     filter_instance = get_content_filter()
     filter_instance.remove_keyword(keyword)
     return {"success": True, "keyword": keyword, "message": "Keyword removed"}
+
+
+# ========================================
+# AI 配置 API (AI Config)
+# ========================================
+
+@app.get("/api/ai/config", tags=["AI"], response_model=AIConfigModel)
+def get_ai_config():
+    """获取 AI 配置"""
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    config_path = os.path.join(project_root, "config", "ai_config.json")
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return AIConfigModel(**data)
+        except Exception as e:
+            print(f"Error reading AI config: {e}")
+    
+    # 默认配置
+    return AIConfigModel(
+        provider="openai",
+        api_key="",
+        base_url="",
+        model_name="gpt-3.5-turbo",
+        temperature=0.7
+    )
+
+
+@app.put("/api/ai/config", tags=["AI"])
+def update_ai_config(config: AIConfigModel):
+    """更新 AI 配置"""
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    config_path = os.path.join(project_root, "config", "ai_config.json")
+    
+    try:
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config.dict(), f, ensure_ascii=False, indent=2)
+        return {"success": True, "message": "AI config updated"}
+    except Exception as e:
+        print(f"Error saving AI config: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save AI config")
+
+
+# ========================================
+# 任务控制 API (Tasks)
+# ========================================
+
+async def run_fetch_task():
+    """后台运行抓取任务"""
+    print("Starting manual fetch task...")
+    try:
+        trendradar = get_trendradar()
+        # 重新加载配置以确保使用最新的 AI 设置
+        trendradar.reload_config()
+        trendradar.run_once()
+        print("Manual fetch task completed.")
+    except Exception as e:
+        print(f"Error in manual fetch task: {e}")
+
+
+@app.post("/api/tasks/fetch", tags=["Tasks"])
+def trigger_fetch(background_tasks: BackgroundTasks):
+    """
+    触发立即抓取任务
+    
+    此操作会在后台异步执行抓取和分析流程。
+    """
+    background_tasks.add_task(run_fetch_task)
+    return {"success": True, "message": "Fetch task started in background"}
 
 
 # --- 启动命令 ---
