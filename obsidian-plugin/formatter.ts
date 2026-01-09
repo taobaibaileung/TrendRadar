@@ -12,6 +12,32 @@ function sanitizeFilename(title: string): string {
     return title.replace(/[\\/:*?"<>|]/g, ' ').trim().replace(/\.$/, '');
 }
 
+/**
+ * 解析 tags 字段，支持字符串和数组格式
+ */
+function parseTags(tags: string | string[] | undefined): string[] {
+    if (!tags) return [];
+    if (Array.isArray(tags)) return tags;
+    try {
+        return JSON.parse(tags);
+    } catch {
+        return tags.split(',').map(t => t.trim()).filter(t => t);
+    }
+}
+
+/**
+ * 解析 key_points 字段，支持字符串和数组格式
+ */
+function parseKeyPoints(keyPoints: string | string[] | undefined): string[] {
+    if (!keyPoints) return [];
+    if (Array.isArray(keyPoints)) return keyPoints;
+    try {
+        return JSON.parse(keyPoints);
+    } catch {
+        return [];
+    }
+}
+
 
 /**
  * Formats a ThemeDetail object into a Markdown string for a new note.
@@ -20,13 +46,19 @@ function sanitizeFilename(title: string): string {
  */
 export function formatThemeToMarkdown(theme: ThemeDetail): { filename: string, content: string } {
     const filename = `${sanitizeFilename(theme.title)}.md`;
+    const tags = parseTags(theme.tags);
+    const keyPoints = parseKeyPoints(theme.key_points);
+
+    let tagsSection = '';
+    if (tags.length > 0) {
+        tagsSection = tags.map(tag => `  - ${tag.toLowerCase().replace(' ', '-')}`).join('\n') + '\n';
+    }
 
     const frontmatter = `---
 tags:
   - trendradar
   - ${theme.category.toLowerCase().replace(' ', '-')}
-${theme.tags.map(tag => `  - ${tag.toLowerCase().replace(' ', '-')}`).join('\n')}
-category: ${theme.category}
+${tagsSection}category: ${theme.category}
 importance: ${theme.importance}
 impact: ${theme.impact}
 created: ${new Date().toISOString()}
@@ -36,16 +68,18 @@ created: ${new Date().toISOString()}
     let content = frontmatter;
     content += `\n# ${theme.title}\n\n`;
 
-    content += `## AI Summary\n`;
+    content += `## AI 分析摘要\n`;
     content += `${theme.summary}\n\n`;
 
-    content += `## Key Points\n`;
-    theme.key_points.forEach(point => {
-        content += `- ${point}\n`;
-    });
-    content += `\n`;
+    if (keyPoints.length > 0) {
+        content += `## 核心要点\n`;
+        keyPoints.forEach(point => {
+            content += `- ${point}\n`;
+        });
+        content += `\n`;
+    }
 
-    content += `## Source Articles (${theme.articles.length})\n`;
+    content += `## 信息来源 (${theme.articles.length})\n`;
     theme.articles.forEach(article => {
         content += `- [${article.title}](${article.url})\n`;
     });

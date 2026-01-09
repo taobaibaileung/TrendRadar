@@ -8,17 +8,26 @@ export class ThemeDetailModal extends Modal {
     private component: ThemeDetailComponent;
     private theme: ThemeDetail;
     private plugin: TrendRadarPlugin;
+    private onAction: (action: string) => void;
 
-    constructor(app: App, theme: ThemeDetail, plugin: TrendRadarPlugin) {
+    constructor(
+        app: App, 
+        theme: ThemeDetail, 
+        plugin: TrendRadarPlugin,
+        onAction?: (action: string) => void
+    ) {
         super(app);
         this.theme = theme;
         this.plugin = plugin;
+        this.onAction = onAction || (() => {});
         this.modalEl.addClass('trendradar-detail-modal');
     }
 
     onOpen() {
+        // 设置模态框标题
         this.titleEl.setText(this.theme.title);
 
+        // 创建 Svelte 组件
         this.component = new ThemeDetailComponent({
             target: this.contentEl,
             props: {
@@ -26,7 +35,10 @@ export class ThemeDetailModal extends Modal {
             },
         });
 
+        // 绑定事件
         this.component.$on('export-note', this.handleExport.bind(this));
+        this.component.$on('archive', this.handleArchive.bind(this));
+        this.component.$on('delete', this.handleDelete.bind(this));
     }
 
     onClose() {
@@ -39,7 +51,7 @@ export class ThemeDetailModal extends Modal {
     async handleExport() {
         const exportPath = this.plugin.settings.exportPath;
         if (!exportPath) {
-            new Notice("Export path is not configured in TrendRadar settings.");
+            new Notice("请先在设置中配置导出路径");
             return;
         }
 
@@ -47,24 +59,36 @@ export class ThemeDetailModal extends Modal {
         const fullPath = `${exportPath}/${filename}`;
 
         try {
-            // Check if the folder exists, create it if it doesn't
+            // 检查文件夹是否存在，不存在则创建
             if (!await this.app.vault.adapter.exists(exportPath)) {
                 await this.app.vault.createFolder(exportPath);
             }
             
-            // Create the new note
+            // 创建笔记
             const newFile = await this.app.vault.create(fullPath, content);
-            new Notice(`Successfully exported note: ${newFile.basename}`);
+            new Notice(`已导出笔记: ${newFile.basename}`);
             
-            // Close the modal after exporting
+            // 关闭模态框
             this.close();
 
-            // Optional: Open the new note
+            // 打开新笔记
             this.app.workspace.openLinkText(newFile.path, '', false);
 
         } catch (error) {
-            console.error("TrendRadar - Failed to export note:", error);
-            new Notice("Error exporting note. Check console for details.");
+            console.error("TrendRadar - 导出笔记失败:", error);
+            new Notice("导出失败，请查看控制台获取详情");
+        }
+    }
+
+    handleArchive() {
+        this.onAction('archive');
+        this.close();
+    }
+
+    handleDelete() {
+        if (confirm('确定要删除这条信息吗？删除后无法恢复。')) {
+            this.onAction('delete');
+            this.close();
         }
     }
 }

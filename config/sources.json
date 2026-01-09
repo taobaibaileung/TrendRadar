@@ -1,0 +1,62 @@
+{
+  "sources": [
+    {
+      "id": "hacker-news",
+      "name": "Hacker News",
+      "type": "rss",
+      "enabled": true,
+      "url": "https://hnrss.org/frontpage",
+      "username": "",
+      "selector": "",
+      "schedule": "0 * * * *",
+      "retention_days": 7,
+      "max_items": 30,
+      "use_proxy": false,
+      "extra": {}
+    },
+    {
+      "id": "ruanyifeng",
+      "name": "阮一峰的网络日志",
+      "type": "rss",
+      "enabled": true,
+      "url": "http://www.ruanyifeng.com/blog/atom.xml",
+      "username": "",
+      "selector": "",
+      "schedule": "0 */6 * * *",
+      "retention_days": 30,
+      "max_items": 20,
+      "use_proxy": false,
+      "extra": {}
+    },
+    {
+      "id": "36kr",
+      "name": "36氪",
+      "type": "rss",
+      "enabled": true,
+      "url": "https://rsshub.app/36kr/news/latest",
+      "username": "",
+      "selector": "",
+      "schedule": "*/30 * * * *",
+      "retention_days": 7,
+      "max_items": 30,
+      "use_proxy": false,
+      "extra": {}
+    },
+    {
+      "id": "wallstreetcn",
+      "name": "华尔街见闻",
+      "type": "rss",
+      "enabled": true,
+      "url": "https://rsshub.app/wallstreetcn/news/global",
+      "username": "",
+      "selector": "",
+      "schedule": "*/15 * * * *",
+      "retention_days": 7,
+      "max_items": 50,
+      "use_proxy": false,
+      "extra": {
+        "category": "finance"
+      }
+    }
+  ]
+}

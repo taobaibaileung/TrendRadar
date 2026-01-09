@@ -20,10 +20,10 @@ export default {
     svelte({
       preprocess: sveltePreprocess({ sourceMap: !isProd }),
       compilerOptions: {
-        // enable run-time checks when not in production
-        dev: !isProd
+        dev: !isProd,
+        css: 'injected'  // 将 CSS 注入到 JS 中
       },
-      emitCss: true, // we'll handle CSS separately
+      emitCss: false,  // 不单独输出 CSS 文件
     }),
     typescript({
       sourceMap: !isProd,

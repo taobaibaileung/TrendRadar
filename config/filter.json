@@ -1,0 +1,29 @@
+{
+  "filter": {
+    "keyword_blacklist": [
+      "娱乐圈",
+      "八卦",
+      "明星",
+      "绯闻",
+      "综艺",
+      "选秀",
+      "网红",
+      "直播带货",
+      "粉丝",
+      "追星"
+    ],
+    "category_blacklist": [
+      "娱乐",
+      "八卦",
+      "明星",
+      "综艺",
+      "体育",
+      "游戏",
+      "irrelevant"
+    ],
+    "source_blacklist": [],
+    "min_content_length": 100,
+    "min_importance": 0,
+    "enable_ai_prefilter": true
+  }
+}

@@ -199,16 +199,35 @@ class AIProcessor:
             print("[AI Processor] 使用模拟数据作为备用。")
             return self._get_mock_result()
         
-    def _build_prompt(self, text_content: str) -> str:
-        """构建发送给大语言模型的指令 (Prompt)"""
+    def _build_prompt(self, text_content: str, filter_prompt: str = "") -> str:
+        """构建发送给大语言模型的指令 (Prompt)
+        
+        Args:
+            text_content: 文章内容
+            filter_prompt: 可选的过滤指令（由 ContentFilter 提供）
+        """
         
         # 限制内容长度，防止超出 token 限制
         max_length = 15000
         if len(text_content) > max_length:
             text_content = text_content[:max_length] + "... (内容已截断)"
+        
+        # 默认的过滤指令
+        default_filter = """
+**内容过滤要求:**
+请首先判断本文是否属于财经、科技、商业、国际关系、地缘政治或其他严肃新闻范畴。
+如果文章内容主要涉及娱乐、八卦、明星、综艺、体育、游戏等非严肃新闻类别，
+或者是名人轶事、社会八卦等娱乐性内容，请直接在返回的 JSON 中将 `category` 字段设为 `irrelevant`，
+其他字段可以简化处理（如 importance 和 impact 设为 1）。
+只有当文章具有实质性的信息价值时，才进行详细分析。
+"""
+        
+        filter_instruction = filter_prompt if filter_prompt else default_filter
 
         prompt = f"""
 请你扮演一个专业的新闻分析师。请仔细阅读以下文章内容，并根据你的理解，以严格的 JSON 格式返回你的分析结果。请特别关注经济趋势、国际关系和技术科技相关的内容。
+
+{filter_instruction}
 
 **文章内容:**
 ---
@@ -219,7 +238,7 @@ class AIProcessor:
 请根据文章内容，提取或生成以下信息，并以一个完整的 JSON 对象返回：
 1.  `title`: (string) 生成一个简洁、精炼、吸引人的标题，不超过 25 个字。
 2.  `summary`: (string) 对全文进行深入总结，生成一段约 150-250 字的摘要。
-3.  `category`: (string) 从以下分类中选择最相关的一个：经济趋势、国际关系、技术科技、商业、金融、政治、军事、社会、文化、其他。
+3.  `category`: (string) 从以下分类中选择最相关的一个：经济趋势、国际关系、技术科技、商业、金融、政治、军事、社会、文化、其他。如果是娱乐八卦类内容，请设为 `irrelevant`。
 4.  `tags`: (string array) 提取文章的 3-5 个核心关键词作为标签。
 5.  `importance`: (integer) 评估文章的重要性，范围从 1 (非常不重要) 到 10 (非常重要)。
 6.  `impact`: (integer) 评估文章的潜在影响范围，范围从 1 (影响极小) 到 10 (影响巨大)。
