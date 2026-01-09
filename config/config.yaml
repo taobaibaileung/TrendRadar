@@ -11,22 +11,80 @@ app:
   timezone: "Asia/Shanghai"
   show_version_update: true           # 显示版本更新提示
 
+# ===============================================================
+# 1.5. 前端设置
+# ===============================================================
+frontend:
+  # AI 聚合分析中，定义多少天内的内容为“新”
+  # 0 表示只显示当天，-1 表示不区分新旧，所有都显示
+  new_theme_age_days: 1 
 
 # ===============================================================
 # 2. AI 分析设置 (新)
 # ===============================================================
 ai:
-  # AI 服务提供商，目前仅支持 "gemini"
-  provider: "gemini"
+  # AI 服务提供商，支持: gemini, wenxin, tongyi, deepseek, alibailian, doubao, zhipu, guijidonggan, mock
+  provider: "deepseek"  # 默认使用mock模式进行测试
 
-  # Google Gemini API Key
-  # 强烈建议使用环境变量 `GEMINI_API_KEY` 进行配置，以保证安全。
-  # 如果留空，程序会尝试从环境变量中读取。
-  # 在 GitHub Actions 中, 请将其配置在 Secrets 中。
-  api_key: ""  # 例如: "your_api_key_here"
+  # 全局API Key（可选，可在providers中为每个服务商单独配置）
+  # 强烈建议使用环境变量 `AI_API_KEY` 进行配置，以保证安全。
+  api_key: "sk-e6e810d6bcf54ad385d2f86aaf0483c0"  # 例如: "your_api_key_here"
 
-  # 使用的模型名称
-  model_name: "gemini-pro"
+  # 全局模型名称（可选，可在providers中为每个服务商单独配置）
+  model_name: "deepseek-chat"  # 例如: "gemini-pro"
+
+  # 全局端点URL（可选，可在providers中为每个服务商单独配置）
+  endpoint_url: "https://api.deepseek.com/v1/chat/completions"  # 例如: "https://api.deepseek.com/v1/chat/completions"
+
+  # 各个AI服务商的特定配置
+  providers:
+    # DeepSeek (深度求索)
+    deepseek:
+      api_key: ""  # DeepSeek API Key
+      model_name: "deepseek-chat"  # 默认模型
+      endpoint_url: "https://api.deepseek.com/v1/chat/completions"  # API端点
+
+    # 阿里云百炼
+    alibailian:
+      api_key: ""  # 阿里云百炼 API Key
+      model_name: "bailian-pro"  # 默认模型
+      endpoint_url: "https://bailian.aliyun.com/api/v1/chat/completions"  # API端点
+
+    # 豆包
+    doubao:
+      api_key: ""  # 豆包 API Key
+      model_name: "doubao-pro"  # 默认模型
+      endpoint_url: "https://api.doubao.com/v1/chat/completions"  # API端点
+
+    # 智谱AI
+    zhipu:
+      api_key: ""  # 智谱 API Key
+      model_name: "glm-4"  # 默认模型
+      endpoint_url: "https://api.zhipuai.com/v1/chat/completions"  # API端点
+
+    # 硅基动感
+    guijidonggan:
+      api_key: ""  # 硅基动感 API Key
+      model_name: "guiji-pro"  # 默认模型
+      endpoint_url: "https://api.guijidonggan.com/v1/chat/completions"  # API端点
+
+    # 百度文心一言
+    wenxin:
+      api_key: ""  # 文心一言 API Key
+      model_name: "ernie-bot"  # 默认模型
+      endpoint_url: "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions"  # API端点
+
+    # 阿里通义千问
+    tongyi:
+      api_key: ""  # 通义千问 API Key
+      model_name: "qwen-plus"  # 默认模型
+      endpoint_url: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"  # API端点
+
+    # Google Gemini
+    gemini:
+      api_key: ""  # Gemini API Key
+      model_name: "gemini-pro"  # 默认模型
+      endpoint_url: ""  # Gemini使用默认端点，无需配置
 
 
 # ===============================================================

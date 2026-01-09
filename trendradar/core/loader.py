@@ -212,6 +212,31 @@ def _load_storage_config(config_data: Dict) -> Dict:
     }
 
 
+def _load_ai_config(config_data: Dict) -> Dict:
+    """加载 AI 分析配置"""
+    ai_config = config_data.get("ai", {})
+    
+    # 读取通用AI配置
+    provider = _get_env_str("AI_PROVIDER") or ai_config.get("provider", "mock")
+    api_key = _get_env_str("AI_API_KEY") or ai_config.get("api_key", "")
+    model_name = _get_env_str("AI_MODEL_NAME") or ai_config.get("model_name", "")
+    
+    # 读取特定服务商的配置
+    providers_config = ai_config.get("providers", {})
+    provider_config = providers_config.get(provider, {})
+    
+    # 获取端点URL（先从provider_config获取，再从通用配置获取）
+    endpoint_url = provider_config.get("endpoint_url", ai_config.get("endpoint_url", ""))
+    
+    return {
+        "AI_PROVIDER": provider,
+        "AI_API_KEY": api_key,
+        "AI_MODEL_NAME": model_name,
+        "AI_ENDPOINT_URL": endpoint_url,
+        "AI_PROVIDER_CONFIG": provider_config
+    }
+
+
 def _load_webhook_config(config_data: Dict) -> Dict:
     """加载 Webhook 配置"""
     notification = config_data.get("notification", {})
@@ -387,6 +412,9 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
 
     # Webhook 配置
     config.update(_load_webhook_config(config_data))
+
+    # AI 配置
+    config.update(_load_ai_config(config_data))
 
     # 打印通知渠道配置来源
     _print_notification_sources(config)

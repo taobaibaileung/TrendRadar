@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS analysis_themes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     summary TEXT NOT NULL,
+    tags TEXT,
     key_points TEXT, -- 存储要点，格式为 JSON 或 换行分隔的文本
     category TEXT,
     importance INTEGER,

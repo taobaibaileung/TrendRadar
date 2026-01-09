@@ -76,6 +76,7 @@ class RSSItem:
     summary: str = ""                   # 摘要/描述
     author: str = ""                    # 作者
     crawl_time: str = ""                # 抓取时间（HH:MM 格式）
+    theme_id: Optional[int] = None      # 主题 ID（AI 分析后关联的主题）
 
     # 统计信息
     first_time: str = ""                # 首次抓取时间
@@ -96,6 +97,7 @@ class RSSItem:
             "first_time": self.first_time,
             "last_time": self.last_time,
             "count": self.count,
+            "theme_id": self.theme_id,
         }
 
     @classmethod
@@ -110,6 +112,7 @@ class RSSItem:
             summary=data.get("summary", ""),
             author=data.get("author", ""),
             crawl_time=data.get("crawl_time", ""),
+            theme_id=data.get("theme_id"),
             first_time=data.get("first_time", ""),
             last_time=data.get("last_time", ""),
             count=data.get("count", 1),

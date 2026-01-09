@@ -20,6 +20,7 @@ def prepare_report_data(
     rank_threshold: int = 3,
     matches_word_groups_func: Optional[Callable] = None,
     load_frequency_words_func: Optional[Callable] = None,
+    ai_themes: Optional[List[Dict]] = None,
 ) -> Dict:
     """
     准备报告数据
@@ -33,6 +34,7 @@ def prepare_report_data(
         rank_threshold: 排名阈值
         matches_word_groups_func: 词组匹配函数
         load_frequency_words_func: 加载频率词函数
+        ai_themes: AI 聚合主题数据（可选）
 
     Returns:
         Dict: 准备好的报告数据
@@ -134,6 +136,7 @@ def prepare_report_data(
         "total_new_count": sum(
             len(source["titles"]) for source in processed_new_titles
         ),
+        "ai_themes": ai_themes or [],
     }
 
 
@@ -154,6 +157,7 @@ def generate_html_report(
     matches_word_groups_func: Optional[Callable] = None,
     load_frequency_words_func: Optional[Callable] = None,
     enable_index_copy: bool = True,
+    ai_themes: Optional[List[Dict]] = None,
 ) -> str:
     """
     生成 HTML 报告
@@ -175,6 +179,7 @@ def generate_html_report(
         matches_word_groups_func: 词组匹配函数
         load_frequency_words_func: 加载频率词函数
         enable_index_copy: 是否复制到 index.html
+        ai_themes: AI 聚合主题数据（可选）
 
     Returns:
         str: 生成的 HTML 文件路径
@@ -204,6 +209,7 @@ def generate_html_report(
         rank_threshold,
         matches_word_groups_func,
         load_frequency_words_func,
+        ai_themes,
     )
 
     # 渲染 HTML 内容

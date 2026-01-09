@@ -5,6 +5,7 @@
 使用 SQLite 作为主存储，支持可选的 TXT 快照和 HTML 报告
 """
 
+import json
 import sqlite3
 import shutil
 import pytz
@@ -1135,7 +1136,7 @@ class LocalStorageBackend(StorageBackend):
             cursor.execute("""
                 SELECT i.id, i.title, i.feed_id, f.name as feed_name,
                        i.url, i.published_at, i.summary, i.author,
-                       i.first_crawl_time, i.last_crawl_time, i.crawl_count
+                       i.first_crawl_time, i.last_crawl_time, i.crawl_count, i.theme_id
                 FROM rss_items i
                 LEFT JOIN rss_feeds f ON i.feed_id = f.id
                 ORDER BY i.published_at DESC
@@ -1170,6 +1171,7 @@ class LocalStorageBackend(StorageBackend):
                     first_time=row[8],
                     last_time=row[9],
                     count=row[10],
+                    theme_id=row[11],
                 ))
 
             # 获取最新的抓取时间
@@ -1201,6 +1203,86 @@ class LocalStorageBackend(StorageBackend):
         except Exception as e:
             print(f"[本地存储] 读取 RSS 数据失败: {e}")
             return None
+
+    def get_ai_themes(self, date: Optional[str] = None) -> List[Dict]:
+        """获取 AI 聚合主题及其关联文章列表"""
+        try:
+            conn = self._get_connection(date, db_type="rss")
+            cursor = conn.cursor()
+
+            cursor.execute("PRAGMA table_info(analysis_themes)")
+            columns = {row["name"] for row in cursor.fetchall()}
+            if not columns:
+                return []
+
+            select_cols = [
+                "id", "title", "summary", "key_points",
+                "category", "importance", "impact", "created_at",
+            ]
+            has_tags = "tags" in columns
+            if has_tags:
+                select_cols.append("tags")
+
+            cursor.execute(
+                f"SELECT {', '.join(select_cols)} FROM analysis_themes "
+                "ORDER BY importance DESC, created_at DESC"
+            )
+            theme_rows = cursor.fetchall()
+            if not theme_rows:
+                return []
+
+            theme_ids = [row["id"] for row in theme_rows]
+            placeholders = ",".join("?" for _ in theme_ids)
+
+            cursor.execute(f"""
+                SELECT i.theme_id, i.title, i.url, i.published_at, f.name AS feed_name
+                FROM rss_items i
+                LEFT JOIN rss_feeds f ON i.feed_id = f.id
+                WHERE i.theme_id IN ({placeholders})
+                ORDER BY i.published_at DESC
+            """, theme_ids)
+            article_rows = cursor.fetchall()
+
+            theme_articles: Dict[int, List[Dict]] = {theme_id: [] for theme_id in theme_ids}
+            for row in article_rows:
+                theme_articles[row["theme_id"]].append({
+                    "title": row["title"] or "",
+                    "url": row["url"] or "",
+                    "published_at": row["published_at"] or "",
+                    "feed_name": row["feed_name"] or "",
+                })
+
+            def parse_json_list(value: Optional[str]) -> List[str]:
+                if not value:
+                    return []
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, list):
+                        return [str(item) for item in parsed if str(item).strip()]
+                except Exception:
+                    pass
+                return [line.strip("• ").strip() for line in str(value).splitlines() if line.strip()]
+
+            themes: List[Dict] = []
+            for row in theme_rows:
+                theme_id = row["id"]
+                themes.append({
+                    "id": theme_id,
+                    "title": row["title"] or "",
+                    "summary": row["summary"] or "",
+                    "key_points": parse_json_list(row["key_points"]),
+                    "category": row["category"] or "其他",
+                    "importance": row["importance"] or 0,
+                    "impact": row["impact"] or 0,
+                    "created_at": row["created_at"] or "",
+                    "tags": parse_json_list(row["tags"]) if has_tags else [],
+                    "articles": theme_articles.get(theme_id, []),
+                })
+
+            return themes
+        except Exception as e:
+            print(f"[本地存储] 读取 AI 主题失败: {e}")
+            return []
 
     def detect_new_rss_items(self, current_data: RSSData) -> Dict[str, List[RSSItem]]:
         """

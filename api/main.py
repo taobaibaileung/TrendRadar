@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # 注意：这需要项目根目录在 PYTHONPATH 中
 from trendradar.storage.local import LocalStorageBackend
 from trendradar.utils.time import format_date_folder
+from trendradar.core.config import load_config
 
 # --- FastAPI 应用初始化 ---
 
@@ -62,35 +63,52 @@ def read_root():
     """
     return {"status": "ok", "message": "TrendRadar API is running."}
 
-@app.get("/api/themes", tags=["Themes"], response_model=List[Dict[str, Any]])
+@app.get("/api/themes", tags=["Themes"], response_model=Dict[str, Any])
 def get_themes(date: Optional[str] = None):
     """
-    获取指定日期的所有分析主题列表。
+    获取指定日期的所有分析主题列表，并返回前端配置。
 
     - **date**: YYYY-MM-DD格式的日期。如果未提供，则默认为今天。
     """
     storage = get_storage()
+    config = load_config() # 加载配置
     target_date = format_date_folder(date, storage.timezone)
     
+    # 获取 frontend.new_theme_age_days 配置
+    new_theme_age_days = config.get("frontend", {}).get("new_theme_age_days", 1)
+
     try:
         conn = storage._get_connection(target_date, db_type="rss")
         cursor = conn.cursor()
         
-        # 查询 analysis_themes 表
-        cursor.execute("SELECT id, title, summary, category, importance, impact, created_at FROM analysis_themes ORDER BY importance DESC, created_at DESC")
+        cursor.execute("PRAGMA table_info(analysis_themes)")
+        columns = {row["name"] for row in cursor.fetchall()}
+
+        select_cols = ["id", "title", "summary", "category", "importance", "impact", "created_at"]
+        if "tags" in columns:
+            select_cols.append("tags")
+
+        cursor.execute(
+            f"SELECT {', '.join(select_cols)} FROM analysis_themes "
+            "ORDER BY importance DESC, created_at DESC"
+        )
         themes = cursor.fetchall()
         
-        if not themes:
-            return []
-            
-        return [dict(row) for row in themes]
+        # 返回包含主题列表和配置的字典
+        return {
+            "themes": [dict(row) for row in themes],
+            "new_theme_age_days": new_theme_age_days
+        }
 
     except Exception as e:
         # 在生产环境中，应该记录这个错误
         print(f"Error fetching themes for date {target_date}: {e}")
         # 如果数据库或表不存在，sqlite3会抛出 OperationalError
         # 在这种情况下，返回空列表是合理的
-        return []
+        return {
+            "themes": [],
+            "new_theme_age_days": new_theme_age_days # 即使出错也返回配置
+        }
 
 
 @app.get("/api/themes/{theme_id}", tags=["Themes"], response_model=Dict[str, Any])

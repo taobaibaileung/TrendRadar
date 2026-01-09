@@ -6,6 +6,7 @@ HTML 报告渲染模块
 """
 
 from datetime import datetime
+import json
 from typing import Dict, List, Optional, Callable
 
 from trendradar.report.helpers import html_escape
@@ -146,6 +147,198 @@ def render_html_content(
 
             .content {
                 padding: 24px;
+            }
+
+            .ai-section {
+                margin-bottom: 36px;
+            }
+
+            .ai-section-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+
+            .ai-section-title {
+                font-size: 18px;
+                font-weight: 700;
+                color: #111827;
+            }
+
+            .ai-section-subtitle {
+                font-size: 12px;
+                color: #6b7280;
+            }
+
+            .ai-grid {
+                display: grid;
+                gap: 12px;
+            }
+
+            .ai-card {
+                border: 1px solid #eef0f3;
+                border-radius: 12px;
+                padding: 14px 16px;
+                background: #ffffff;
+                text-align: left;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .ai-card:hover {
+                border-color: #c7d2fe;
+                box-shadow: 0 6px 18px rgba(79, 70, 229, 0.08);
+                transform: translateY(-1px);
+            }
+
+            .ai-card-top {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                gap: 8px;
+            }
+
+            .ai-category {
+                background: #eef2ff;
+                color: #4338ca;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 4px 8px;
+                border-radius: 999px;
+            }
+
+            .ai-score {
+                font-size: 11px;
+                color: #6b7280;
+                white-space: nowrap;
+            }
+
+            .ai-title {
+                font-size: 16px;
+                font-weight: 600;
+                color: #111827;
+                margin-bottom: 6px;
+            }
+
+            .ai-summary {
+                font-size: 13px;
+                color: #4b5563;
+                line-height: 1.5;
+            }
+
+            .ai-tags {
+                margin-top: 10px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .ai-tag {
+                font-size: 11px;
+                color: #1f2937;
+                background: #f3f4f6;
+                padding: 3px 8px;
+                border-radius: 999px;
+            }
+
+            .ai-modal {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.55);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 16px;
+            }
+
+            .ai-modal.active {
+                display: flex;
+            }
+
+            .ai-modal-content {
+                background: #ffffff;
+                border-radius: 16px;
+                max-width: 720px;
+                width: 100%;
+                max-height: 85vh;
+                overflow: auto;
+                padding: 22px 24px;
+                box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+                position: relative;
+            }
+
+            .ai-modal-close {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                border: none;
+                background: #f3f4f6;
+                width: 32px;
+                height: 32px;
+                border-radius: 999px;
+                cursor: pointer;
+                font-size: 18px;
+            }
+
+            .ai-modal-header {
+                margin-bottom: 16px;
+            }
+
+            .ai-modal-title {
+                font-size: 20px;
+                font-weight: 700;
+                color: #111827;
+                margin: 8px 0 10px;
+            }
+
+            .ai-modal-summary {
+                font-size: 14px;
+                color: #374151;
+                line-height: 1.6;
+                white-space: pre-wrap;
+            }
+
+            .ai-modal-section {
+                margin-top: 18px;
+            }
+
+            .ai-modal-label {
+                font-size: 12px;
+                font-weight: 600;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                margin-bottom: 8px;
+            }
+
+            .ai-modal-list {
+                margin: 0;
+                padding-left: 18px;
+                color: #374151;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            .ai-modal-sources {
+                display: grid;
+                gap: 8px;
+            }
+
+            .ai-source-link {
+                display: inline-flex;
+                flex-direction: column;
+                gap: 2px;
+                text-decoration: none;
+                color: #1d4ed8;
+                font-size: 13px;
+            }
+
+            .ai-source-meta {
+                font-size: 11px;
+                color: #6b7280;
             }
 
             .word-group {
@@ -669,6 +862,83 @@ def render_html_content(
                     </ul>
                 </div>"""
 
+    ai_themes = report_data.get("ai_themes", [])
+    ai_html = ""
+    ai_modal_html = ""
+    ai_js_data = ""
+
+    def _short_summary(text: str, limit: int = 120) -> str:
+        cleaned = " ".join(text.strip().split())
+        if len(cleaned) <= limit:
+            return cleaned
+        return cleaned[:limit].rstrip() + "..."
+
+    if ai_themes:
+        total_ai = len(ai_themes)
+        ai_html += """
+                <div class="ai-section">
+                    <div class="ai-section-header">
+                        <div class="ai-section-title">AI 聚合分析</div>
+                        <div class="ai-section-subtitle">"""
+        ai_html += f"{total_ai} 个主题</div>"
+        ai_html += """
+                    </div>
+                    <div class="ai-grid">"""
+
+        for idx, theme in enumerate(ai_themes):
+            title = html_escape(theme.get("title", ""))
+            summary = html_escape(_short_summary(theme.get("summary", "")))
+            category = html_escape(theme.get("category", "其他"))
+            importance = theme.get("importance", 0)
+            impact = theme.get("impact", 0)
+            tags = theme.get("tags", [])
+            tags_html = "".join(
+                f'<span class="ai-tag">{html_escape(tag)}</span>' for tag in tags
+            )
+
+            ai_html += f"""
+                        <button class="ai-card" data-theme-index="{idx}">
+                            <div class="ai-card-top">
+                                <span class="ai-category">{category}</span>
+                                <span class="ai-score">重要度 {importance} · 影响 {impact}</span>
+                            </div>
+                            <div class="ai-title">{title}</div>
+                            <div class="ai-summary">{summary}</div>
+                            <div class="ai-tags">{tags_html}</div>
+                        </button>"""
+
+        ai_html += """
+                    </div>
+                </div>"""
+
+        ai_modal_html = """
+        <div class="ai-modal" id="ai-modal">
+            <div class="ai-modal-content" role="dialog" aria-modal="true">
+                <button class="ai-modal-close" id="ai-modal-close" aria-label="Close">×</button>
+                <div class="ai-modal-header">
+                    <span class="ai-category" id="ai-modal-category"></span>
+                    <div class="ai-modal-title" id="ai-modal-title"></div>
+                    <div class="ai-tags" id="ai-modal-tags"></div>
+                </div>
+                <div class="ai-modal-section">
+                    <div class="ai-modal-label">AI 总结</div>
+                    <div class="ai-modal-summary" id="ai-modal-summary"></div>
+                </div>
+                <div class="ai-modal-section">
+                    <div class="ai-modal-label">关键要点</div>
+                    <ul class="ai-modal-list" id="ai-modal-points"></ul>
+                </div>
+                <div class="ai-modal-section">
+                    <div class="ai-modal-label">数据源链接</div>
+                    <div class="ai-modal-sources" id="ai-modal-sources"></div>
+                </div>
+            </div>
+        </div>
+        """
+
+        ai_data_json = json.dumps(ai_themes, ensure_ascii=False).replace("</", "<\\/")
+        ai_js_data = f"const aiThemes = {ai_data_json};"
+
     # 生成热点词汇统计部分的HTML
     stats_html = ""
     if report_data["stats"]:
@@ -926,8 +1196,14 @@ def render_html_content(
 
                 escaped_title = html_escape(item_title)
                 if url:
-                    escaped_url = html_escape(url)
-                    rss_html += f'<a href="{escaped_url}" target="_blank" class="rss-link">{escaped_title}</a>'
+                    # 如果有theme_id，使用AI分析总结页面的链接
+                    if title_data.get("theme_id"):
+                        theme_id = title_data.get("theme_id")
+                        rss_html += f'<a href="/api/themes/{theme_id}" target="_blank" class="rss-link">{escaped_title}</a>'
+                    else:
+                        # 否则使用原始URL
+                        escaped_url = html_escape(url)
+                        rss_html += f'<a href="{escaped_url}" target="_blank" class="rss-link">{escaped_title}</a>'
                 else:
                     rss_html += escaped_title
 
@@ -949,12 +1225,12 @@ def render_html_content(
     # 根据配置决定内容顺序（与推送逻辑一致）
     if reverse_content_order:
         # 新增在前，统计在后
-        # 顺序：热榜新增 → RSS新增 → 热榜统计 → RSS统计
-        html += new_titles_html + rss_new_html + stats_html + rss_stats_html
+        # 顺序：AI 聚合 → 热榜新增 → RSS新增 → 热榜统计 → RSS统计
+        html += ai_html + new_titles_html + rss_new_html + stats_html + rss_stats_html
     else:
         # 默认：统计在前，新增在后
-        # 顺序：热榜统计 → RSS统计 → 热榜新增 → RSS新增
-        html += stats_html + rss_stats_html + new_titles_html + rss_new_html
+        # 顺序：AI 聚合 → 热榜统计 → RSS统计 → 热榜新增 → RSS新增
+        html += ai_html + stats_html + rss_stats_html + new_titles_html + rss_new_html
 
     html += """
             </div>
@@ -977,8 +1253,121 @@ def render_html_content(
                 </div>
             </div>
         </div>
+"""
 
+    if ai_modal_html:
+        html += ai_modal_html
+
+    html += """
         <script>
+"""
+    if ai_js_data:
+        html += f"""
+            {ai_js_data}
+            const aiModal = document.getElementById('ai-modal');
+            if (aiModal && Array.isArray(aiThemes)) {{
+                const modalClose = document.getElementById('ai-modal-close');
+                const modalCategory = document.getElementById('ai-modal-category');
+                const modalTitle = document.getElementById('ai-modal-title');
+                const modalTags = document.getElementById('ai-modal-tags');
+                const modalSummary = document.getElementById('ai-modal-summary');
+                const modalPoints = document.getElementById('ai-modal-points');
+                const modalSources = document.getElementById('ai-modal-sources');
+
+                const clearNode = (node) => {{
+                    while (node.firstChild) {{
+                        node.removeChild(node.firstChild);
+                    }}
+                }};
+
+                const closeModal = () => {{
+                    aiModal.classList.remove('active');
+                    document.body.style.overflow = '';
+                }};
+
+                const openTheme = (index) => {{
+                    const theme = aiThemes[index];
+                    if (!theme) {{
+                        return;
+                    }}
+                    modalCategory.textContent = theme.category || '其他';
+                    modalTitle.textContent = theme.title || '';
+                    modalSummary.textContent = theme.summary || '';
+
+                    clearNode(modalTags);
+                    (theme.tags || []).forEach((tag) => {{
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'ai-tag';
+                        tagEl.textContent = tag;
+                        modalTags.appendChild(tagEl);
+                    }});
+
+                    clearNode(modalPoints);
+                    const points = theme.key_points || [];
+                    if (points.length > 0) {{
+                        points.forEach((point) => {{
+                            const li = document.createElement('li');
+                            li.textContent = point;
+                            modalPoints.appendChild(li);
+                        }});
+                    }} else {{
+                        const li = document.createElement('li');
+                        li.textContent = '暂无关键要点';
+                        modalPoints.appendChild(li);
+                    }}
+
+                    clearNode(modalSources);
+                    const articles = theme.articles || [];
+                    if (articles.length > 0) {{
+                        articles.forEach((article) => {{
+                            const link = document.createElement('a');
+                            link.className = 'ai-source-link';
+                            link.href = article.url || '#';
+                            link.target = '_blank';
+                            link.rel = 'noopener';
+                            link.textContent = article.title || article.url || '来源链接';
+
+                            const meta = document.createElement('span');
+                            meta.className = 'ai-source-meta';
+                            const feedName = article.feed_name || '';
+                            const publishedAt = article.published_at || '';
+                            meta.textContent = [feedName, publishedAt].filter(Boolean).join(' · ');
+
+                            link.appendChild(meta);
+                            modalSources.appendChild(link);
+                        }});
+                    }} else {{
+                        const empty = document.createElement('div');
+                        empty.className = 'ai-source-meta';
+                        empty.textContent = '暂无来源链接';
+                        modalSources.appendChild(empty);
+                    }}
+
+                    aiModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }};
+
+                document.querySelectorAll('.ai-card').forEach((card) => {{
+                    card.addEventListener('click', () => {{
+                        const index = Number(card.dataset.themeIndex || 0);
+                        openTheme(index);
+                    }});
+                }});
+
+                modalClose.addEventListener('click', closeModal);
+                aiModal.addEventListener('click', (event) => {{
+                    if (event.target === aiModal) {{
+                        closeModal();
+                    }}
+                }});
+                document.addEventListener('keydown', (event) => {{
+                    if (event.key === 'Escape') {{
+                        closeModal();
+                    }}
+                }});
+            }}
+"""
+    html += """
             async function saveAsImage() {
                 const button = event.target;
                 const originalText = button.textContent;

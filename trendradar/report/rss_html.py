@@ -368,8 +368,14 @@ def render_rss_html_content(
                         <div class="rss-title">"""
 
             if url:
-                escaped_url = html_escape(url)
-                html += f'<a href="{escaped_url}" target="_blank" class="rss-link">{escaped_title}</a>'
+                # 如果有theme_id，使用AI分析总结页面的链接
+                if item.get("theme_id"):
+                    theme_id = item.get("theme_id")
+                    html += f'<a href="/api/themes/{theme_id}" target="_blank" class="rss-link">{escaped_title}</a>'
+                else:
+                    # 否则使用原始URL
+                    escaped_url = html_escape(url)
+                    html += f'<a href="{escaped_url}" target="_blank" class="rss-link">{escaped_title}</a>'
             else:
                 html += escaped_title
 

@@ -287,6 +287,7 @@ class AppContext:
         update_info: Optional[Dict] = None,
         rss_items: Optional[List[Dict]] = None,
         rss_new_items: Optional[List[Dict]] = None,
+        ai_themes: Optional[List[Dict]] = None,
     ) -> str:
         """生成HTML报告"""
         return generate_html_report(
@@ -306,6 +307,7 @@ class AppContext:
             matches_word_groups_func=self.matches_word_groups,
             load_frequency_words_func=self.load_frequency_words,
             enable_index_copy=True,
+            ai_themes=ai_themes,
         )
 
     def render_html(

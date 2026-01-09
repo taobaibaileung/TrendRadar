@@ -17,6 +17,8 @@ from trendradar.context import AppContext
 from trendradar import __version__
 from trendradar.core import load_config
 from trendradar.core.analyzer import convert_keyword_stats_to_platform_stats
+from trendradar.core.ai_analyzer import run_ai_analysis
+from trendradar.ai.processor import AIProcessor
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
 from trendradar.utils.time import is_within_days
@@ -273,6 +275,13 @@ class NewsAnalyzer:
             print(f"数据加载失败: {e}")
             return None
 
+    def _load_ai_themes(self) -> List[Dict]:
+        """读取 AI 聚合主题数据（用于汇总页展示）"""
+        backend = getattr(self.storage_manager, "_backend", None)
+        if backend and hasattr(backend, "get_ai_themes"):
+            return backend.get_ai_themes(self.ctx.format_date())
+        return []
+
     def _prepare_current_title_info(self, results: Dict, time_info: str) -> Dict:
         """从当前抓取结果构建标题信息"""
         title_info = {}
@@ -308,6 +317,7 @@ class NewsAnalyzer:
         quiet: bool = False,
         rss_items: Optional[List[Dict]] = None,
         rss_new_items: Optional[List[Dict]] = None,
+        ai_themes: Optional[List[Dict]] = None,
     ) -> Tuple[List[Dict], Optional[str]]:
         """统一的分析流水线：数据处理 → 统计计算 → HTML生成"""
 
@@ -346,6 +356,7 @@ class NewsAnalyzer:
                 update_info=self.update_info if self.ctx.config["SHOW_VERSION_UPDATE"] else None,
                 rss_items=rss_items,
                 rss_new_items=rss_new_items,
+                ai_themes=ai_themes,
             )
 
         return stats, html_file
@@ -493,6 +504,7 @@ class NewsAnalyzer:
         all_results, id_to_name, title_info, new_titles, word_groups, filter_words, global_filters = (
             analysis_data
         )
+        ai_themes = self._load_ai_themes()
 
         # 运行分析流水线
         stats, html_file = self._run_analysis_pipeline(
@@ -507,6 +519,7 @@ class NewsAnalyzer:
             global_filters=global_filters,
             rss_items=rss_items,
             rss_new_items=rss_new_items,
+            ai_themes=ai_themes,
         )
 
         if html_file:
@@ -545,6 +558,7 @@ class NewsAnalyzer:
         all_results, id_to_name, title_info, new_titles, word_groups, filter_words, global_filters = (
             analysis_data
         )
+        ai_themes = self._load_ai_themes()
 
         # 运行分析流水线（静默模式，避免重复输出日志）
         _, html_file = self._run_analysis_pipeline(
@@ -560,6 +574,7 @@ class NewsAnalyzer:
             quiet=True,
             rss_items=rss_items,
             rss_new_items=rss_new_items,
+            ai_themes=ai_themes,
         )
 
         if html_file:
@@ -1136,6 +1151,17 @@ class NewsAnalyzer:
 
             # 抓取 RSS 数据（如果启用），返回统计条目和新增条目用于合并推送
             rss_items, rss_new_items = self._crawl_rss_data()
+
+            # 执行 AI 分析
+            print("正在执行 AI 分析...")
+            # 从配置中读取AI参数并初始化AIProcessor
+            ai_processor = AIProcessor(
+                provider=self.ctx.config["AI_PROVIDER"],
+                api_key=self.ctx.config["AI_API_KEY"],
+                model_name=self.ctx.config["AI_MODEL_NAME"],
+                endpoint_url=self.ctx.config["AI_ENDPOINT_URL"]
+            )
+            run_ai_analysis(self.storage_manager._backend, ai_processor, self.ctx.format_date())
 
             # 执行模式策略，传递 RSS 数据用于合并推送
             self._execute_mode_strategy(
