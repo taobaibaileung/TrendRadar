@@ -63,11 +63,14 @@ export class ThemeDetailModal extends Modal {
             if (!await this.app.vault.adapter.exists(exportPath)) {
                 await this.app.vault.createFolder(exportPath);
             }
-            
+
             // 创建笔记
             const newFile = await this.app.vault.create(fullPath, content);
             new Notice(`已导出笔记: ${newFile.basename}`);
-            
+
+            // 导出后删除卡片
+            this.onAction('delete');
+
             // 关闭模态框
             this.close();
 
@@ -86,9 +89,8 @@ export class ThemeDetailModal extends Modal {
     }
 
     handleDelete() {
-        if (confirm('确定要删除这条信息吗？删除后无法恢复。')) {
-            this.onAction('delete');
-            this.close();
-        }
+        // 直接删除，无需确认
+        this.onAction('delete');
+        this.close();
     }
 }

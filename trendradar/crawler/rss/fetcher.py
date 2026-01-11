@@ -127,12 +127,13 @@ class RSSFetcher:
         filtered_count = len(items) - len(filtered)
         return filtered, filtered_count
 
-    def fetch_feed(self, feed: RSSFeedConfig) -> Tuple[List[RSSItem], Optional[str]]:
+    def fetch_feed(self, feed: RSSFeedConfig, cycle_id: Optional[str] = None) -> Tuple[List[RSSItem], Optional[str]]:
         """
         抓取单个 RSS 源
 
         Args:
             feed: RSS 源配置
+            cycle_id: 周期ID，用于错误追踪去重
 
         Returns:
             (条目列表, 错误信息) 元组
@@ -176,22 +177,44 @@ class RSSFetcher:
         except requests.Timeout:
             error = f"请求超时 ({self.timeout}s)"
             print(f"[RSS] {feed.name}: {error}")
+            self._log_error(feed.name, error, "timeout", cycle_id)
             return [], error
 
         except requests.RequestException as e:
             error = f"请求失败: {e}"
             print(f"[RSS] {feed.name}: {error}")
+            self._log_error(feed.name, error, "request", cycle_id, details=str(type(e).__name__))
             return [], error
 
         except ValueError as e:
             error = f"解析失败: {e}"
             print(f"[RSS] {feed.name}: {error}")
+            self._log_error(feed.name, error, "parse", cycle_id, details="RSS/Atom 解析错误")
             return [], error
 
         except Exception as e:
             error = f"未知错误: {e}"
             print(f"[RSS] {feed.name}: {error}")
+            self._log_error(feed.name, error, "unknown", cycle_id, details=type(e).__name__)
             return [], error
+
+    def _log_error(self, source_name: str, message: str, error_type: str, cycle_id: Optional[str] = None, details: str = ""):
+        """记录错误到错误追踪器"""
+        try:
+            # 延迟导入以避免循环依赖
+            from api.errors import get_error_tracker
+            error_tracker = get_error_tracker()
+            error_tracker.log_error(
+                error_type="source",
+                source=source_name,
+                message=message,
+                severity="error",
+                details=details if details else None,
+                cycle_id=cycle_id
+            )
+        except Exception as e:
+            # 错误记录失败不影响主流程
+            print(f"[RSS] {source_name}: 记录错误失败 - {e}")
 
     def fetch_all(self) -> RSSData:
         """
@@ -209,7 +232,10 @@ class RSSFetcher:
         crawl_time = now.strftime("%H:%M")
         crawl_date = now.strftime("%Y-%m-%d")
 
-        print(f"[RSS] 开始抓取 {len(self.feeds)} 个 RSS 源...")
+        # 生成周期ID（使用时间戳）
+        cycle_id = f"cycle_{int(now.timestamp() * 1000)}"
+
+        print(f"[RSS] 开始抓取 {len(self.feeds)} 个 RSS 源 (周期: {cycle_id})...")
 
         for i, feed in enumerate(self.feeds):
             # 请求间隔（带随机波动）
@@ -218,7 +244,7 @@ class RSSFetcher:
                 jitter = random.uniform(-0.2, 0.2) * interval
                 time.sleep(interval + jitter)
 
-            items, error = self.fetch_feed(feed)
+            items, error = self.fetch_feed(feed, cycle_id)
 
             id_to_name[feed.id] = feed.name
 
@@ -229,6 +255,14 @@ class RSSFetcher:
 
         total_items = sum(len(items) for items in all_items.values())
         print(f"[RSS] 抓取完成: {len(all_items)} 个源成功, {len(failed_ids)} 个失败, 共 {total_items} 条")
+
+        # 清理周期错误缓存
+        try:
+            from api.errors import get_error_tracker
+            error_tracker = get_error_tracker()
+            error_tracker.clear_cycle_errors(cycle_id)
+        except Exception as e:
+            print(f"[RSS] 清理周期缓存失败 - {e}")
 
         return RSSData(
             date=crawl_date,

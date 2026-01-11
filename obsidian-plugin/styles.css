@@ -261,6 +261,75 @@
   border: 1px dashed var(--background-modifier-border);
 }
 
+/* 空数据源列表 - 简化样式（无背景、无边框） */
+.empty-source-list {
+  padding: var(--size-4-2) 0;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: var(--font-ui-smaller);
+}
+
+/* AI 配置头部 - 标题和模式选择在同一行 */
+.ai-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--size-4-3);
+  padding: var(--size-4-2) 0;
+}
+
+.ai-config-header h3 {
+  margin: 0;
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+}
+
+.ai-mode-select {
+  padding: var(--size-2-1) var(--size-2-2);
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.ai-mode-select:hover {
+  border-color: var(--background-modifier-border-hover);
+}
+
+/* AI 配置分隔线 */
+.ai-config-divider,
+.data-source-divider {
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+  margin: var(--size-4-3) 0;
+}
+
+/* AI 服务选择容器 */
+.ai-service-selection {
+  /* 无特殊样式，仅作为容器 */
+}
+
+/* 数据源头部 - 标题和添加按钮在同一行 */
+.data-source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--size-4-3);
+  padding: var(--size-4-2) 0;
+}
+
+.data-source-header h3 {
+  margin: 0;
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+}
+
+.data-source-header button {
+  margin: 0;
+}
+
 /* 修复数据源图标样式 */
 .source-icon {
   display: flex;
@@ -299,3 +368,556 @@
   align-items: center;
   gap: var(--size-4-2);
 }
+
+/* ========================================
+   分组列表样式 (Apple 风格)
+   ======================================== */
+
+.trendradar-groups-list {
+  margin-top: var(--size-4-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-3);
+}
+
+.trendradar-group-item {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+  padding: var(--size-4-3) var(--size-4-4);
+  background-color: var(--background-primary);
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.trendradar-group-item:hover {
+  background-color: var(--background-secondary);
+  border-color: var(--background-modifier-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.group-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--interactive-accent) 0%, var(--interactive-accent-hover) 100%);
+  border-radius: 10px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.group-details {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.group-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background-color: var(--background-secondary-alt);
+  border-radius: 4px;
+  font-size: var(--font-ui-smaller);
+}
+
+.group-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  margin-left: var(--size-4-2);
+}
+
+.group-status.enabled {
+  background-color: rgba(67, 197, 89, 0.1);
+  color: #22c55e;
+}
+
+.group-status.disabled {
+  background-color: var(--background-secondary-alt);
+  color: var(--text-muted);
+}
+
+.group-actions {
+  display: flex;
+  gap: var(--size-4-1);
+  flex-shrink: 0;
+}
+
+.group-actions button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background-color: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.group-actions button:hover {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+  transform: scale(1.05);
+}
+
+/* ========================================
+   分组编辑 Modal 样式 (Apple 风格)
+   ======================================== */
+
+/* Modal 容器 */
+.modal.mod-fresh-source-group-edit,
+.modal.mod-fresh-unified-source {
+  max-width: 650px;
+  width: 90vw;
+}
+
+/* 标题样式 */
+.modal.mod-fresh-source-group-edit h2,
+.modal.mod-fresh-unified-source h2 {
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin-bottom: var(--size-4-4);
+}
+
+/* Section 分隔 */
+.modal.mod-fresh-source-group-edit h3 {
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin-top: var(--size-4-6);
+  margin-bottom: var(--size-4-3);
+  padding-bottom: var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.modal.mod-fresh-source-group-edit h4 {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: var(--size-4-4);
+  margin-bottom: var(--size-4-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Setting Item 紧凑样式 */
+.modal.mod-fresh-source-group-edit .setting-item,
+.modal.mod-fresh-unified-source .setting-item {
+  padding: var(--size-4-2) 0;
+  border-top: none;
+}
+
+.modal.mod-fresh-source-group-edit .setting-item-info,
+.modal.mod-fresh-unified-source .setting-item-info {
+  margin-bottom: var(--size-4-1);
+}
+
+.modal.mod-fresh-source-group-edit .setting-item-name,
+.modal.mod-fresh-unified-source .setting-item-name {
+  font-weight: 500;
+  font-size: var(--font-ui-small);
+}
+
+.modal.mod-fresh-source-group-edit .setting-item-description,
+.modal.mod-fresh-unified-source .setting-item-description {
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+/* 数据源列表样式 */
+.group-sources-list {
+  margin: var(--size-4-3) 0;
+  padding: var(--size-4-3);
+  background-color: var(--background-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.group-source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--size-4-2) var(--size-4-3);
+  margin-bottom: var(--size-4-1);
+  background-color: var(--background-primary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  transition: all 0.15s ease;
+}
+
+.group-source-item:last-child {
+  margin-bottom: 0;
+}
+
+.group-source-item:hover {
+  background-color: var(--background-secondary-alt);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.group-source-item .source-name {
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+}
+
+.group-source-item button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.group-source-item button:hover {
+  background-color: var(--color-red);
+  color: white;
+  border-color: var(--color-red);
+}
+
+/* 源选择器信息表格 */
+.source-info-table {
+  width: 100%;
+  margin: var(--size-4-3) 0;
+  border-collapse: collapse;
+  font-size: var(--font-ui-small);
+}
+
+.source-info-table th {
+  text-align: left;
+  padding: var(--size-4-2);
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--background-modifier-border);
+  width: 120px;
+}
+
+.source-info-table td {
+  padding: var(--size-4-2);
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+
+.source-info-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 按钮样式优化 */
+.modal.mod-fresh-source-group-edit button.mod-cta,
+.modal.mod-fresh-unified-source button.mod-cta {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.modal.mod-fresh-source-group-edit button.mod-cta:hover,
+.modal.mod-fresh-unified-source button.mod-cta:hover {
+  background-color: var(--interactive-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   AI配置Tab样式
+   ======================================== */
+
+.ai-config-tabs {
+  display: flex;
+  gap: var(--size-4-2);
+  margin-bottom: var(--size-4-4);
+  padding-bottom: var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ai-tab {
+  flex: 1;
+  padding: var(--size-4-2) var(--size-4-3);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-m);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ai-tab:hover {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+}
+
+.ai-tab.active {
+  color: var(--interactive-accent);
+  background-color: rgba(var(--interactive-accent-rgb), 0.1);
+}
+
+.ai-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--size-4-2) * -1);
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--interactive-accent);
+  border-radius: 1px;
+}
+
+.ai-tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-config-container {
+  margin: var(--size-4-2) 0;
+}
+
+/* ========================================
+   AI配置紧凑布局样式
+   ======================================== */
+
+.ai-config-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--size-4-2) var(--size-4-3);
+  align-items: center;
+  margin: var(--size-4-2) 0;
+  padding: var(--size-4-2);
+  background-color: var(--background-secondary);
+  border-radius: 6px;
+}
+
+.ai-config-row {
+  display: contents;
+}
+
+.ai-config-label {
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-1);
+}
+
+.ai-config-label .label-icon {
+  font-size: var(--font-ui-smaller);
+  opacity: 0.7;
+}
+
+.ai-config-value {
+  display: flex;
+  gap: var(--size-4-2);
+  align-items: center;
+}
+
+.ai-config-value input[type="text"],
+.ai-config-value select {
+  flex: 1;
+  min-width: 0;
+  padding: var(--size-4-1) var(--size-4-2);
+  font-size: var(--font-ui-smaller);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  transition: border-color 0.15s ease;
+}
+
+.ai-config-value input[type="text"]:focus,
+.ai-config-value select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.ai-config-value .preset-indicator {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background-color: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+.ai-config-description {
+  grid-column: 1 / -1;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  line-height: 1.4;
+  padding: var(--size-4-1) 0;
+}
+
+/* 温度滑块紧凑样式 */
+.ai-temp-container {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  flex: 1;
+}
+
+.ai-temp-slider {
+  flex: 1;
+}
+
+.ai-temp-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  color: var(--text-normal);
+  background-color: var(--background-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* AI配置区域标题紧凑样式 */
+.ai-section-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: var(--size-4-3) 0 var(--size-4-2) 0;
+  padding: var(--size-4-2);
+  background-color: var(--background-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.ai-section-desc {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin: 0 0 var(--size-4-2) 0;
+  line-height: 1.4;
+}
+
+/* ========================================
+   错误统计弹框样式
+   ======================================== */
+
+/* 总览卡片 */
+.error-overview-card {
+  display: flex;
+  gap: var(--size-4-3);
+  padding: var(--size-4-4);
+  background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-primary) 100%);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--background-modifier-border);
+  margin-bottom: var(--size-4-3);
+}
+
+.overview-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-4-1);
+}
+
+.overview-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.overview-value {
+  font-size: var(--font-ui-larger);
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+/* 统计卡片 */
+.error-stat-card {
+  background-color: var(--background-secondary);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-3);
+  margin-bottom: var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.stat-card-title {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--size-4-2);
+  padding-bottom: var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--size-4-1) 0;
+  font-size: var(--font-ui-small);
+}
+
+.stat-row-label {
+  color: var(--text-normal);
+}
+
+.stat-row-value {
+  font-weight: 600;
+  color: var(--interactive-accent);
+}
+
+/* 空状态 */
+.error-empty-card {
+  text-align: center;
+  padding: var(--size-4-8);
+}
+
+.empty-text {
+  font-size: var(--font-ui-medium);
+  color: var(--text-success);
+  font-weight: 500;
+}
+

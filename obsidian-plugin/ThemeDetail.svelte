@@ -38,6 +38,7 @@
 
   $: tags = parseTags(theme.tags);
   $: keyPoints = parseKeyPoints(theme.key_points);
+  $: isLinkSummary = theme.category === "链接汇总";
 </script>
 
 <div class="trendradar-theme-detail-container">
@@ -66,23 +67,26 @@
         </button>
       </div>
     </div>
-    
+
     <h1 class="title">{theme.title}</h1>
-    
-    <div class="metrics">
-      <div class="metric">
-        <span class="metric-label">重要性</span>
-        <span class="metric-value importance">{theme.importance}/10</span>
+
+    <!-- 链接汇总类型不显示重要性、影响力、创建时间 -->
+    {#if !isLinkSummary}
+      <div class="metrics">
+        <div class="metric">
+          <span class="metric-label">重要性</span>
+          <span class="metric-value importance">{theme.importance}/10</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">影响力</span>
+          <span class="metric-value impact">{theme.impact}/10</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">创建时间</span>
+          <span class="metric-value">{new Date(theme.created_at).toLocaleString('zh-CN')}</span>
+        </div>
       </div>
-      <div class="metric">
-        <span class="metric-label">影响力</span>
-        <span class="metric-value impact">{theme.impact}/10</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">创建时间</span>
-        <span class="metric-value">{new Date(theme.created_at).toLocaleString('zh-CN')}</span>
-      </div>
-    </div>
+    {/if}
 
     <!-- 标签 -->
     {#if tags.length > 0}
@@ -94,14 +98,22 @@
     {/if}
   </div>
 
-  <!-- AI 摘要 -->
-  <div class="section summary-section">
-    <h2>📊 AI 分析摘要</h2>
-    <p class="summary-text">{theme.summary}</p>
-  </div>
+  <!-- 链接汇总类型不显示 AI 分析摘要 -->
+  {#if !isLinkSummary}
+    <!-- AI 摘要 -->
+    <div class="section summary-section">
+      <h2>📊 AI 分析摘要</h2>
+      <p class="summary-text">{theme.summary}</p>
+    </div>
+  {:else}
+    <!-- 链接汇总类型直接显示摘要内容（不含标题） -->
+    <div class="section summary-section">
+      <p class="summary-text">{theme.summary}</p>
+    </div>
+  {/if}
 
-  <!-- 核心要点 -->
-  {#if keyPoints.length > 0}
+  <!-- 链接汇总类型不显示核心要点 -->
+  {#if !isLinkSummary && keyPoints.length > 0}
     <div class="section">
       <h2>💡 核心要点</h2>
       <ul class="key-points">
@@ -146,7 +158,8 @@
               })}
             </span>
           </div>
-          {#if article.summary}
+          <!-- 链接汇总类型不显示摘要 -->
+          {#if !isLinkSummary && article.summary}
             <p class="article-summary">{article.summary}</p>
           {/if}
         </div>

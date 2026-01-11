@@ -48,3 +48,7 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# Node.js
+node_modules/
+*.bak
