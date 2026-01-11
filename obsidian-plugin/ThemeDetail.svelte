@@ -43,10 +43,12 @@
 
 <div class="trendradar-theme-detail-container">
   <!-- 头部信息 -->
-  <div class="header">
+  <div class="header" class:link-summary-header={isLinkSummary}>
     <div class="header-top">
       <div class="meta-left">
-        <span class="category">{theme.category}</span>
+        {#if !isLinkSummary}
+          <span class="category">{theme.category}</span>
+        {/if}
         {#if theme.status === 'archived'}
           <span class="status-badge archived">已归档</span>
         {:else if theme.status === 'read'}
@@ -54,9 +56,11 @@
         {/if}
       </div>
       <div class="action-buttons">
-        <button class="action-btn export" on:click={handleExport} title="导出为笔记">
-          📝 导出笔记
-        </button>
+        {#if !isLinkSummary}
+          <button class="action-btn export" on:click={handleExport} title="导出为笔记">
+            📝 导出笔记
+          </button>
+        {/if}
         {#if theme.status !== 'archived'}
           <button class="action-btn archive" on:click={handleArchive} title="归档">
             📥 归档
@@ -67,8 +71,6 @@
         </button>
       </div>
     </div>
-
-    <h1 class="title">{theme.title}</h1>
 
     <!-- 链接汇总类型不显示重要性、影响力、创建时间 -->
     {#if !isLinkSummary}
@@ -89,7 +91,7 @@
     {/if}
 
     <!-- 标签 -->
-    {#if tags.length > 0}
+    {#if !isLinkSummary && tags.length > 0}
       <div class="tags">
         {#each tags as tag}
           <span class="tag">{tag}</span>
@@ -98,16 +100,10 @@
     {/if}
   </div>
 
-  <!-- 链接汇总类型不显示 AI 分析摘要 -->
+  <!-- AI 摘要 -->
   {#if !isLinkSummary}
-    <!-- AI 摘要 -->
     <div class="section summary-section">
       <h2>📊 AI 分析摘要</h2>
-      <p class="summary-text">{theme.summary}</p>
-    </div>
-  {:else}
-    <!-- 链接汇总类型直接显示摘要内容（不含标题） -->
-    <div class="section summary-section">
       <p class="summary-text">{theme.summary}</p>
     </div>
   {/if}
@@ -182,6 +178,12 @@
     margin-bottom: var(--size-4-4);
     padding-bottom: var(--size-4-4);
     border-bottom: 2px solid var(--background-modifier-border);
+  }
+
+  /* 链接汇总类型：不显示分割线 */
+  .link-summary-header {
+    border-bottom: none;
+    padding-bottom: 0;
   }
 
   .header-top {
